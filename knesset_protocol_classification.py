@@ -8,9 +8,6 @@ from sklearn.model_selection import cross_val_score
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 
-
-
-
 def make_chunks(data):
     sorted_data = data.sort_values(by = ['protocol_name','speaker_name'])
     i = 0 
@@ -97,8 +94,3 @@ if __name__ == '__main__':
         sentences = file.read().split('\n')
         prediction_porb = 0.7*SVM.predict_proba(vectorizer.fit_transform(sentences)) + 0.3 *KNN.predict_proba(vectorizer.fit_transform(sentences))
         print(prediction_porb)
-        
-
-
-    
-    
