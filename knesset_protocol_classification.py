@@ -2,11 +2,14 @@ import pandas as pd
 import numpy as np 
 import sklearn
 import random
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate , cross_val_predict
 from sklearn import svm
 from sklearn.model_selection import train_test_split
+
+import time
 
 def make_chunks(data):
     # if we have diffrent speakers then dont put then in the same chunck also if there are not in the same protocol do not put them in the same chunck
@@ -47,8 +50,6 @@ def make_chunks(data):
             continue
         new_row = pd.DataFrame({'protocol_name':[protocol_name],'knesset_number':[cuurent_number],'protocol_type':[protocol_type],'speaker_name':[speaker],'sentence_text':[sentence]})
         new_data = pd.concat([new_data,new_row],ignore_index=True)
-
-
     return new_data
 
 def down_sample(data,N):
@@ -70,10 +71,15 @@ if __name__ == '__main__':
     plenary_data = df.loc[df['protocol_type'] == 'plenary']
 
     #part 2
-    '''committee_data = make_chunks(committee_data)
+    '''start_time = time.time()
+    print('chunk_start_time: '+ str(start_time))
+    committee_data = make_chunks(committee_data)
     committee_data.to_csv('committee_data.csv',index=False)
     plenary_data = make_chunks(plenary_data)
-    plenary_data.to_csv('plenary_data.csv',index=False)'''
+    plenary_data.to_csv('plenary_data.csv',index=False)
+    end_time = time.time()
+    print('chunk_end_time: '+ str(end_time))
+    print(f'chunk took :{end_time-start_time}')'''
 
     committee_data = pd.read_csv('committee_data.csv')
     plenary_data = pd.read_csv('plenary_data.csv')
@@ -85,16 +91,22 @@ if __name__ == '__main__':
     plenary_data = down_sample(plenary_data,len(plenary_data)-len(committee_data))
 
     data = pd.concat([committee_data,plenary_data])
+    data = data.sample(frac=1,random_state = 42)
 
     #part 4.1
-    vectorizer = CountVectorizer()
-    features = vectorizer.fit_transform(data['sentence_text'])
+    start_time = time.time()
+    vectorizer = TfidfVectorizer()
+    vectorizer.fit(data['sentence_text'])
+    features = vectorizer.transform(data['sentence_text'])
+    end_time = time.time()
+    print('took')
+    print(end_time - start_time)
 
     #part 4.2
     our_feature_vector = pd.DataFrame()
     unique_strings = {string: index for index, string in enumerate(set(data['speaker_name']))}
 
-# Assign a number to each string in the list
+    # Assign a number to each string in the list
     numbered_strings = [unique_strings[string] for string in data['speaker_name']]
 
     our_feature_vector['speaker_name'] = numbered_strings
@@ -103,10 +115,17 @@ if __name__ == '__main__':
 
     #part 5.1
     print('BoW train validation')
-    KNN = KNeighborsClassifier(100)
-    SVM = svm.SVC()
-    print (cross_val_score(KNN,features,data['protocol_type'],cv=10).mean())
-    print (cross_val_score(SVM,features,data['protocol_type'],cv=10).mean())
+    KNN = KNeighborsClassifier(5)
+    SVM = svm.SVC(max_iter=10000)
+
+    KNN_cross_validation = cross_val_predict(KNN,features,data['protocol_type'],cv=10,verbose=2,n_jobs=-1)
+    print(f'KNN with corss validation {sklearn.metrics.classification_report(data["protocol_type"], KNN_cross_validation)}')
+
+    SVM_cross_validation = cross_val_predict(SVM,features,data['protocol_type'],cv=10,verbose=2,n_jobs=-1)
+
+    print(f'SVM with corss validation {sklearn.metrics.classification_report(data["protocol_type"], SVM_cross_validation)}')
+    #print (cross_val_score(KNN,features,data['protocol_type'],cv=10,verbose=2).mean())
+    #print (cross_val_score(SVM,features,data['protocol_type'],cv=10,verbose=2).mean())
 
 
     X_train, X_test, y_train, y_test = train_test_split(features, data['protocol_type'], test_size=0.1, random_state=42)
@@ -123,10 +142,15 @@ if __name__ == '__main__':
 
     #part 5.2
     print('our vecotr test validation')
-    KNN = KNeighborsClassifier(1)
+    KNN = KNeighborsClassifier(3)
     SVM = svm.SVC()
-    print (cross_val_score(KNN,our_feature_vector,data['protocol_type'],cv=10).mean())
-    print (cross_val_score(SVM,our_feature_vector,data['protocol_type'],cv=10).mean())
+
+    KNN_cross_validation = cross_val_predict(KNN,features,data['protocol_type'],cv=10,verbose=2,n_jobs=-1)
+    print(f'KNN with corss validation {sklearn.metrics.classification_report(data["protocol_type"], KNN_cross_validation)}')
+
+    SVM_cross_validation = cross_val_predict(SVM,features,data['protocol_type'],cv=10,verbose=2,n_jobs=-1)
+
+    print(f'SVM with corss validation {sklearn.metrics.classification_report(data["protocol_type"], SVM_cross_validation)}')
 
 
     X_train, X_test, y_train, y_test = train_test_split(our_feature_vector, data['protocol_type'], test_size=0.1, random_state=42)
@@ -143,12 +167,9 @@ if __name__ == '__main__':
     #part 6
     with open('knesset_text_chunks.txt', 'r',encoding='utf-8') as file:
         sentences = file.readlines()
-        predictions = last_model.predict(sentences)
+        predictions = last_model.predict(vectorizer.transform(sentences))
         text=''
         for prediction in predictions: 
             text+=prediction + '\n'
         with open('classification_results.txt','w') as write_file:
             write_file.write(text)
-
-        
-
