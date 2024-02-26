@@ -1,6 +1,6 @@
 committee
 plenary
-plenary
+committee
 plenary
 plenary
 plenary
@@ -15,7 +15,7 @@ plenary
 committee
 plenary
 committee
-plenary
+committee
 plenary
 committee
 plenary

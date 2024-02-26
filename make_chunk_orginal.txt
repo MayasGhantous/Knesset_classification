@@ -1,0 +1,40 @@
+'''def make_chunks(data):
+    # if we have diffrent speakers then dont put then in the same chunck also if there are not in the same protocol do not put them in the same chunck
+
+    #if we sort the data then we can make assienmet more efficient
+    sorted_data = data.sort_values(by = ['protocol_name','speaker_name'])
+    i = 0 
+    new_data = pd.DataFrame(columns = sorted_data.columns)
+    while i < len(sorted_data):
+
+        #the current row
+        protocol_type = sorted_data.iloc[i]['protocol_type']
+        cuurent_number =sorted_data.iloc[i]['knesset_number'] 
+        protocol_name =sorted_data.iloc[i]['protocol_name']
+        sentence = sorted_data.iloc[i]['sentence_text']
+        speaker = sorted_data.iloc[i]['speaker_name']
+        i+=1
+        j = 1
+        while j<5: #max 5 sentences
+            if i >= len(sorted_data):
+                break
+            #take the sentnce
+            currnet_protocol_name =sorted_data.iloc[i]['protocol_name']
+            sentence += " " +sorted_data.iloc[i]['sentence_text']
+            current_speaker = sorted_data.iloc[i]['speaker_name']
+            #if we have somthinf wrong (not the same speaker or not the same protocol) then change what we are searching for
+            if currnet_protocol_name != protocol_name or current_speaker != speaker:
+                j = 1
+                cuurent_number =sorted_data.iloc[i]['knesset_number']
+                protocol_name = currnet_protocol_name
+                speaker = current_speaker
+                sentence = sorted_data.iloc[i]['sentence_text']
+                i+=1
+            else:
+                i+=1
+                j+=1
+        if j != 5:# if we dont have enough sentence then dont save the results
+            continue
+        new_row = pd.DataFrame({'protocol_name':[protocol_name],'knesset_number':[cuurent_number],'protocol_type':[protocol_type],'speaker_name':[speaker],'sentence_text':[sentence]})
+        new_data = pd.concat([new_data,new_row],ignore_index=True)
+    return new_data'''
