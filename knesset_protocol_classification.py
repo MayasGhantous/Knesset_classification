@@ -9,9 +9,7 @@ from sklearn import svm
 from sklearn.model_selection import train_test_split
 
 def process(group):
-    #first make the general row
     chunk_size = 5
-    #row = {'protocol_name': [group.iloc[0]['protocol_name']] , 'knesset_number': [group.iloc[0]['knesset_number']] ,'protocol_type': [group.iloc[0]['protocol_type']] ,'speaker_name': [group.iloc[0]['speaker_name']] }
     
     sentences = group['sentence_text'].tolist()
     #create the data
@@ -30,7 +28,6 @@ def process(group):
 
     for word in word_list:
         word_list = [1 if word in combined[i] else 0 for i in range(len(combined))]
-        #word_list = [combined[i].count(word) for i in range(len(combined))]
 
         row[word] = word_list
 
@@ -40,7 +37,7 @@ def process(group):
     return data_frame
 
 def make_chunks(data):
-    #devide the data into the right groups (according to protocol_name  and speaker_name) and apply procces for each group
+    #devide the data into the right groups (according to protocol_name and the type) and apply procces for each group
     #the func in DataFrameGroupBy.apply(func), func takes a data frame and can return a data frame and 
     #thats why this code works because process return a data frame
     result_df = data.groupby(['protocol_type','protocol_name'],dropna = True).apply(process).reset_index(drop = True)
@@ -122,17 +119,15 @@ if __name__ == '__main__':
     print('BoW train validation')
     KNN = KNeighborsClassifier(10)
     SVM = svm.SVC(kernel='linear')
+
     print(f'KNN with corss validation: ')
     KNN_cross_validation = cross_val_predict(KNN,features,labels,cv=10,n_jobs=jobs)
     print(sklearn.metrics.classification_report(labels, KNN_cross_validation))
-    #print ("score -"+str(cross_val_score(KNN,features,data['protocol_type'],cv=10,n_jobs=-1).mean()))
 
 
     print(f'SVM with corss validation: ')
     SVM_cross_validation = cross_val_predict(SVM,features,labels,cv=10,n_jobs=jobs)
-
     print(sklearn.metrics.classification_report(labels, SVM_cross_validation))
-    #print (cross_val_score(SVM,features,data['protocol_type'],cv=10,verbose=2).mean())
 
 
     X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.1, random_state=42,stratify=labels)
@@ -140,12 +135,12 @@ if __name__ == '__main__':
     SVM.fit(X_train,y_train)
     last_model = SVM
 
-    y_pred = KNN.predict(X_test)
     print(f'KNN with split: ')
+    y_pred = KNN.predict(X_test)
     print(sklearn.metrics.classification_report(y_test, y_pred))
     
-    y_pred = SVM.predict(X_test)
     print(f'SVM with split: ')
+    y_pred = SVM.predict(X_test)
     print(sklearn.metrics.classification_report(y_test, y_pred))
     
 
@@ -153,6 +148,8 @@ if __name__ == '__main__':
     print('our vecotr test validation')
     KNN = KNeighborsClassifier(10)
     SVM = svm.SVC(kernel='rbf')
+
+
     print(f'Our KNN with corss validation: ')
     KNN_cross_validation = cross_val_predict(KNN,our_feature_vector,labels,cv=10,n_jobs=jobs)
     print(sklearn.metrics.classification_report(labels, KNN_cross_validation))
@@ -163,6 +160,7 @@ if __name__ == '__main__':
 
 
     X_train, X_test, y_train, y_test = train_test_split(our_feature_vector, labels, test_size=0.1, random_state=42,stratify=labels)
+    
     print(f'our KNN with split:')
     KNN.fit(X_train,y_train)
     y_pred = KNN.predict(X_test)
