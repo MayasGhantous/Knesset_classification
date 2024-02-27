@@ -8,6 +8,11 @@ from sklearn.model_selection import cross_val_predict
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 
+
+
+#will be deleted
+from sklearn.decomposition import TruncatedSVD
+import heapq
 import time
 
 def process(group):
@@ -27,8 +32,16 @@ def process(group):
     combined = [' '.join(sentences[i:i+chunk_size]) for i in range(0, len(sentences)-(chunk_size-1), chunk_size)]
     row['sentence_text'] = combined
 
-    avarage_length = [((len(sentences[i])+len(sentences[i+1])+len(sentences[i+2])+len(sentences[i+3])+len(sentences[i+4]))/5.0) for i in range(0, len(sentences)-4, 5)]
-    row['avarage_length'] = avarage_length
+    #avarage_length = [((len(sentences[i])+len(sentences[i+1])+len(sentences[i+2])+len(sentences[i+3])+len(sentences[i+4]))/5.0) for i in range(0, len(sentences)-4, 5)]
+    #row['avarage_length'] = avarage_length
+
+    word_list = ['חוק','הצעה','תודה','חברי','ראש','אדוני','חבר',]
+    for word in word_list:
+        word_list = [1 if word in combined[i] else 0 for i in range(len(combined))]
+        #word_list = [combined[i].count(word) for i in range(len(combined))]
+
+        row[word] = word_list
+
 
     #convert to a data frame
     data_frame = pd.DataFrame(row)
@@ -72,23 +85,53 @@ if __name__ == '__main__':
     #connect the 2 types with randomness 
     data = pd.concat([committee_data,plenary_data])
     data = data.sample(frac=1,random_state=42).reset_index(drop = True)
+
+
     
     #part 4.1
     vectorizer = TfidfVectorizer()
     vectorizer.fit(data['sentence_text'])
     features = vectorizer.transform(data['sentence_text'])
+
    
     #part 4.2
-    #our feature vector is the 100 tokens that have most occurences 
-    our_feature_vector = []
-    top_vectorize = TfidfVectorizer(max_features=100)
+    #our feature vector is the 100 tokens that have most occurences
+###########################
+    
+    '''
+    
+    #get the most uncommn words accros the to data type
+
+    p_Counter = CountVectorizer(vocabulary=vectorizer.vocabulary_)
+    c_Counter = CountVectorizer(vocabulary=vectorizer.vocabulary_)
+
+    P = p_Counter.fit_transform(plenary_data['sentence_text'])
+    C = c_Counter.fit_transform(committee_data['sentence_text'])
+
+    dic = {word: C[:,vectorizer.vocabulary_.get(word)].sum() /P[:,vectorizer.vocabulary_.get(word,1)].sum() if C[:,vectorizer.vocabulary_.get(word)].sum()>2000 else 0  for word_i,word in enumerate(vectorizer.vocabulary_.keys())}
+    big_list = heapq.nlargest(30, dic, key=dic.get)
+    for word in big_list:
+
+        print(f'{word}:  {str(dic[word])} = {C[:,vectorizer.vocabulary_.get(word)].sum()} - {P[:,vectorizer.vocabulary_.get(word)].sum()}')
+    
+    '''
+
+#########################
+
+    top_vectorize = TfidfVectorizer(max_features=10,ngram_range=(1,1))
     top_vectorize.fit(data['sentence_text'])
-    vocabulary = top_vectorize.vocabulary_
-    our_feature_vector = top_vectorize.transform(data['sentence_text']).toarray().tolist()
-    avarages = data['avarage_length']
+    #our_feature_vector = top_vectorize.transform(data['sentence_text']).toarray().tolist()
     knesset_numbers = data['knesset_number']
+    
+    #avarage_lengths = data['avarage_length']
+    our_feature_vector = [[] for _ in range(len(knesset_numbers))]
+    word_list = ['חוק','הצעה','חברי','ראש','אדוני','חבר']
+
     for i in range(len(our_feature_vector)):
         our_feature_vector[i].extend([knesset_numbers[i]])
+        for word in word_list:
+           our_feature_vector[i].extend([data.iloc[i][word]])
+
 
     #part 5.1
     jobs = -1
@@ -103,7 +146,7 @@ if __name__ == '__main__':
 
 
     print(f'SVM with corss validation: ')
-    SVM_cross_validation = cross_val_predict(SVM,features,labels,cv=10,n_jobs=jobs,verbose=1)
+    SVM_cross_validation = cross_val_predict(SVM,features,labels,cv=10,n_jobs=jobs)
 
     print(sklearn.metrics.classification_report(labels, SVM_cross_validation))
     #print (cross_val_score(SVM,features,data['protocol_type'],cv=10,verbose=2).mean())
@@ -121,12 +164,12 @@ if __name__ == '__main__':
     y_pred = SVM.predict(X_test)
     print(f'SVM with split: ')
     print(sklearn.metrics.classification_report(y_test, y_pred))
-
+    
 
     #part 5.2
     print('our vecotr test validation')
     KNN = KNeighborsClassifier(10)
-    SVM = svm.SVC(kernel='linear')
+    SVM = svm.SVC(kernel='linear',)
     print(f'Our KNN with corss validation: ')
     KNN_cross_validation = cross_val_predict(KNN,our_feature_vector,labels,cv=10,n_jobs=jobs)
     print(sklearn.metrics.classification_report(labels, KNN_cross_validation))
@@ -137,15 +180,14 @@ if __name__ == '__main__':
 
 
     X_train, X_test, y_train, y_test = train_test_split(our_feature_vector, labels, test_size=0.1, random_state=42,stratify=labels)
-    KNN.fit(X_train,y_train)
-    SVM.fit(X_train,y_train)
-
-    y_pred = KNN.predict(X_test)
     print(f'our KNN with split:')
+    KNN.fit(X_train,y_train)
+    y_pred = KNN.predict(X_test)
     print(sklearn.metrics.classification_report(y_test, y_pred))
-    
-    y_pred = SVM.predict(X_test)
+
     print(f'our SVM with split: ')
+    SVM.fit(X_train,y_train)
+    y_pred = SVM.predict(X_test)
     print(sklearn.metrics.classification_report(y_test, y_pred))
     end_time = time.time()
     print('took')
